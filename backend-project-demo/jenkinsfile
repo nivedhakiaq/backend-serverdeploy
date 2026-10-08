@@ -3,26 +3,31 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', credentialsId: 'github-creds', url: 'https://github.com/nivedhakiaq/backend-serverdeploy.git'
+                git branch: 'main',
+                    credentialsId: 'github-creds',
+                    url: 'https://github.com/nivedhakiaq/backend-serverdeploy.git'
             }
         }
         stage('Deploy to EC2') {
             steps {
                 sshagent(['backend-ssh']) {
                     sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@43.204.231.12 '
-                    set -e
-                    mkdir -p /home/ubuntu/backend-project-demo
-                    cd /home/ubuntu/backend-project-demo
-                    rm -rf backend-serverdeploy
-                    git clone https://github.com/nivedhakiaq/backend-serverdeploy.git
-                    cd backend-serverdeploy
-                    docker stop backend-app || true
-                    docker rm backend-app || true
-                    docker build -t backend-app .
-                    docker run -d --name backend-app -p 5000:5000 backend-app
-                    '
-                    """
+                        ssh -o StrictHostKeyChecking=no ubuntu@43.204.231.12 'bash -s' <<'REMOTE'
+                        set -e
+                        mkdir -p /home/ubuntu/backend-project-demo
+                        cd /home/ubuntu/backend-project-demo
+                        if [ -d backend-serverdeploy ]; then
+                            rm -rf backend-serverdeploy
+                        fi
+                        git clone https://github.com/nivedhakiaq/backend-serverdeploy.git
+                        cd backend-serverdeploy
+                        docker stop backend-app || true
+                        docker rm backend-app || true
+                        docker build -t backend-app .
+                        docker run -d --name backend-app -p 5000:5000 backend-app
+                        docker ps
+                        REMOTE
+                    '''
                 }
             }
         }
