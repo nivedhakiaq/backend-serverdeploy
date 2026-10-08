@@ -1,55 +1,30 @@
 pipeline {
     agent any
-    
-    environment{
-        EC2_IP = "43.204.231.120"
-    }
     stages {
-        
-        stage('checkout code') {
+        stage('Checkout') {
             steps {
-                git branch: 'main',
-                credentialsId: 'github-creds',
-                url: 'https://github.com/nivedhakiaq/backend-serverdeploy.git'
+                git branch: 'main', credentialsId: 'github-creds', url: 'https://github.com/nivedhakiaq/backend-serverdeploy.git'
             }
         }
-        
         stage('Deploy to EC2') {
             steps {
                 sshagent(['backend-ssh']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
-                        set -e
-                        mkdir -p /home/ubuntu/apps
-                        cd /home/ubuntu/apps
-
-                        if [ ! -d backend-project ]; then
-                            git clone git@github.com/nivedhakiaq/backend-serverdeploy.git
-                        fi
-
-                        cd backend-project
-                        git checkout main
-                        git pull origin main
-                     
-                        docker stop myapp || true
-                        docker rm myapp || true
-                        docker rmi backend-image || true
-
-                        docker build -t backend-image .
-                        docker run -d -p 5000:5000 --name myapp backend-image
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@43.204.231.12 '
+                    set -e
+                    mkdir -p /home/ubuntu/backend-project-demo
+                    cd /home/ubuntu/backend-project-demo
+                    rm -rf backend-serverdeploy
+                    git clone https://github.com/nivedhakiaq/backend-serverdeploy.git
+                    cd backend-serverdeploy
+                    docker stop backend-app || true
+                    docker rm backend-app || true
+                    docker build -t backend-app .
+                    docker run -d --name backend-app -p 5000:5000 backend-app
                     '
                     """
                 }
             }
-        }
-    }
-    
-    post {
-        success {
-            echo "✅ DEPLOYMENT SUCCESSFUL"
-        }
-        failure {
-            echo "❌ DEPLOYMENT FAILED"
         }
     }
 }
