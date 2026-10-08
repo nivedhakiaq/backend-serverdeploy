@@ -1,24 +1,30 @@
 pipeline {
-  agent any
-  environment {
-    EC2 = 'ubuntu@43.204.231.120'
-  }
-  stages {
-    stage('Checkout') {
-      steps {
-        git branch: 'main', url: 'https://github.com/nivedhakiaq/backend-serverdeploy.git', credentialsId: 'github-creds'
-      }
-    }
-    stage('Deploy') {
-      steps {
-        sshagent(['backend-ssh']) {
-          sh '''
-            ssh -o StrictHostKeyChecking=no $EC2 "mkdir -p ~/backend"
-            scp -o StrictHostKeyChecking=no -r ./* $EC2:~/backend/
-            ssh -o StrictHostKeyChecking=no $EC2 "cd ~/backend && docker build -t backend . && (docker rm -f backend || true) && docker run -d --name backend -p 5000:5000 backend"
-          '''
+    agent any
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', credentialsId: 'github-creds', url: 'https://github.com/nivedhakiaq/backend-serverdeploy.git'
+            }
         }
-      }
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(['backend-ssh']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@43.204.231.120'
+                    set -e
+                    mkdir -p /home/ubuntu/backend-project-demo
+                    cd /home/ubuntu/backend-project-demo
+                    rm -rf backend-project-demo
+                    git clone https://github.com/nivedhakiaq/backend-serverdeploy.git
+                    cd backend-project-demo
+                    docker stop backend-app || true
+                    docker rm backend-app || true
+                    docker build -t backend-app .
+                    docker run -d --name backend-app -p 5000:5000 backend-app
+                    '
+                    """
+                }
+            }
+        }
     }
-  }
-} 
+}
