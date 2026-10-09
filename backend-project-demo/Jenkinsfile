@@ -28,7 +28,7 @@ pipeline {
                         fi
 
                         
-                        cd backend-project
+                        cd backend-project/backend-project-demo
                         git checkout main
                         git pull origin main
                      
